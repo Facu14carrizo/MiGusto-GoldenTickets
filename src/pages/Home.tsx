@@ -133,15 +133,15 @@ export default function Home() {
                 whileTap={{ scale: 0.95 }}
                 animate={{
                   boxShadow: [
-                    '0 0 30px rgba(255, 215, 0, 0.5), 0 0 60px rgba(255, 193, 7, 0.3), inset 0 0 20px rgba(255,255,255,0.1)',
-                    '0 0 50px rgba(255, 215, 0, 0.8), 0 0 100px rgba(255, 193, 7, 0.4), inset 0 0 30px rgba(255,255,255,0.15)',
-                    '0 0 30px rgba(255, 215, 0, 0.5), 0 0 60px rgba(255, 193, 7, 0.3), inset 0 0 20px rgba(255,255,255,0.1)'
+                    '0 0 30px rgba(255, 215, 0, 0.4), inset 0 0 20px rgba(255,255,255,0.1)',
+                    '0 0 60px rgba(255, 215, 0, 0.7), inset 0 0 30px rgba(255,255,255,0.2)',
+                    '0 0 30px rgba(255, 215, 0, 0.4), inset 0 0 20px rgba(255,255,255,0.1)'
                   ],
-                  y: [0, -4, 0]
+                  y: [-3, 3, -3]
                 }}
                 transition={{
-                  boxShadow: { duration: 1.5, repeat: Infinity, ease: 'easeInOut' },
-                  y: { duration: 2, repeat: Infinity, ease: 'easeInOut' }
+                  boxShadow: { duration: 2, repeat: Infinity, ease: 'easeInOut' },
+                  y: { duration: 3, repeat: Infinity, ease: 'easeInOut' }
                 }}
                 className="group relative px-16 py-6 bg-gradient-to-br from-yellow-400 via-amber-400 to-yellow-600 text-migusto-tierra-oscuro rounded-full font-black text-2xl md:text-3xl uppercase overflow-hidden"
               >

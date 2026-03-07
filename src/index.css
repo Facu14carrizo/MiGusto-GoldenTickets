@@ -13,16 +13,15 @@
     @apply bg-migusto-rojo text-white;
   }
 
+  /* Ocultar barra de desplazamiento en Chrome, Safari y Opera */
   ::-webkit-scrollbar {
-    @apply w-2;
+    display: none;
   }
 
-  ::-webkit-scrollbar-track {
-    @apply bg-migusto-tierra-oscuro;
-  }
-
-  ::-webkit-scrollbar-thumb {
-    @apply bg-migusto-tierra-claro rounded-full hover:bg-migusto-rojo transition-colors;
+  /* Ocultar barra de desplazamiento en Firefox e IE/Edge */
+  * {
+    -ms-overflow-style: none; /* IE y Edge */
+    scrollbar-width: none;    /* Firefox */
   }
 }
 
