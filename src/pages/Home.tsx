@@ -458,7 +458,7 @@ export default function Home() {
           </motion.div>
 
           {/* Botones ORO, PLATA, BRONCE - diseño moderno e innovador */}
-          <div className="flex justify-center items-center gap-5 md:gap-7 mb-20 relative">
+          <div className="flex justify-center items-center gap-3 md:gap-7 mb-12 md:mb-20 relative px-2">
             {(['oro', 'plata', 'bronce'] as TicketTier[]).map((tier, idx) => (
               <motion.button
                 key={tier}
@@ -476,7 +476,12 @@ export default function Home() {
                 transition={{ delay: idx * 0.1, duration: 0.5 }}
                 whileHover={(!isCardFlipped && !isRegistered) ? { scale: 1.1, y: -12 } : {}}
                 whileTap={(!isCardFlipped && !isRegistered) ? { scale: 0.95 } : {}}
-                className={`group relative flex flex-col items-center rounded-[2.5rem] ${tier === 'oro' ? 'w-48 md:w-56 p-10' : tier === 'plata' ? 'w-40 md:w-44 p-7' : 'w-32 md:w-36 p-5'
+                className={`group relative flex flex-col items-center rounded-3xl md:rounded-[2.5rem] 
+                  ${tier === 'oro' 
+                    ? 'w-28 md:w-56 p-4 md:p-10' 
+                    : tier === 'plata' 
+                      ? 'w-24 md:w-44 p-3 md:p-7' 
+                      : 'w-20 md:w-36 p-2 md:p-5'
                   } overflow-hidden transition-all duration-700 premium-border ${(isCardFlipped || isRegistered) ? 'opacity-40 grayscale-[0.5] cursor-not-allowed' : ''} ${selectedTier === tier
                     ? `animate-float ${tierStyles[tier].shadow} bg-gradient-to-br ${tierStyles[tier].gradient} border-2 ${tierStyles[tier].border}`
                     : 'bg-white/[0.03] backdrop-blur-xl border border-white/10 hover:border-white/30'
@@ -492,31 +497,31 @@ export default function Home() {
                   <div className="absolute -inset-10 bg-gradient-to-br from-white/10 via-transparent to-white/10 opacity-30 animate-rotate-slow pointer-events-none" />
                 )}
 
-                <div className={`relative p-5 rounded-3xl mb-4 transition-all duration-500 flex items-center justify-center ${selectedTier === tier
-                  ? `${tierStyles[tier].glow} shadow-[0_0_30px_rgba(255,255,255,0.2)] scale-110`
+                <div className={`relative p-2 md:p-5 rounded-xl md:rounded-3xl mb-2 md:mb-4 transition-all duration-500 flex items-center justify-center ${selectedTier === tier
+                  ? `${tierStyles[tier].glow} shadow-[0_0_20px_rgba(255,255,255,0.2)] md:shadow-[0_0_30px_rgba(255,255,255,0.2)] scale-110`
                   : 'bg-white/5 group-hover:bg-white/10'
                   }`}>
                   <img
                     src={`${import.meta.env.BASE_URL}Logo Mi Gusto 2025.png`}
                     alt="Mi Gusto"
-                    className={`h-12 w-auto md:h-16 object-contain transition-all duration-500 brightness-200 contrast-125 ${selectedTier === tier ? 'drop-shadow-lg' : 'grayscale opacity-40 group-hover:opacity-70 group-hover:grayscale-0'
+                    className={`h-6 md:h-16 w-auto object-contain transition-all duration-500 brightness-200 contrast-125 ${selectedTier === tier ? 'drop-shadow-lg' : 'grayscale opacity-40 group-hover:opacity-70 group-hover:grayscale-0'
                       }`}
                   />
                 </div>
 
-                <h3 className={`relative text-2xl md:text-3xl font-black uppercase tracking-tight transition-all duration-500 ${selectedTier === tier
+                <h3 className={`relative text-sm md:text-3xl font-black uppercase tracking-tight transition-all duration-500 ${selectedTier === tier
                   ? 'text-white drop-shadow-[0_2px_4px_rgba(0,0,0,0.3)]'
                   : 'text-white/40 group-hover:text-white/70'
                   }`}>
                   {tier === 'oro' ? 'Gold' : tier === 'plata' ? 'Silver' : 'Bronze'}
                 </h3>
 
-                <div className={`relative flex flex-col items-center mt-3 transition-colors ${selectedTier === tier ? 'text-white/90' : 'text-white/30 group-hover:text-white/50'
+                <div className={`relative flex flex-col items-center mt-1 md:mt-3 transition-colors ${selectedTier === tier ? 'text-white/90' : 'text-white/30 group-hover:text-white/50'
                   }`}>
-                  <span className="text-[12px] md:text-lg uppercase tracking-[0.25em] font-black leading-tight drop-shadow-sm">
+                  <span className="text-[6px] md:text-lg uppercase tracking-[0.1em] md:tracking-[0.25em] font-black leading-tight drop-shadow-sm text-center">
                     {tier === 'oro' ? 'por 12 meses' : tier === 'plata' ? 'por 6 meses' : 'por 3 meses'}
                   </span>
-                  <span className="text-[8px] md:text-[10px] uppercase mt-1 tracking-[0.1em] font-medium opacity-50">
+                  <span className="text-[4px] md:text-[10px] uppercase mt-0.5 md:mt-1 tracking-[0.05em] md:tracking-[0.1em] font-medium opacity-50 hidden md:block">
                     Pack 12 empanadas cada mes
                   </span>
                 </div>
