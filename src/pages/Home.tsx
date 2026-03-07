@@ -406,79 +406,74 @@ export default function Home() {
                   cuando el ID ingresado en el frente es validado correctamente.
                 */}
                 <div
-                  className="absolute inset-0 flex flex-col p-5 bg-black/40 backdrop-blur-sm rounded-[14px] overflow-hidden"
+                  className="absolute inset-0 flex flex-col p-6 overflow-hidden"
                   style={{ 
                     backfaceVisibility: 'hidden', 
                     transform: 'rotateY(180deg)',
                     zIndex: isCardFlipped ? 1 : 0
                   }}
                 >
-                  <div className="flex justify-between items-center mb-3">
-                    <h4 className="text-white text-sm font-black uppercase tracking-widest">Registro Lovers</h4>
+                  {/* Header con Logo y Título - DORSO */}
+                  <div className="flex justify-between items-start w-full relative z-10 mb-2">
+                    <span className={`text-lg font-black uppercase tracking-widest opacity-80 ${tierStyles[selectedTier].label}`}>
+                      Mi Gusto Lovers
+                    </span>
                     <img
                       src={`${import.meta.env.BASE_URL}Logo Mi Gusto 2025.png`}
                       alt="Mi Gusto"
-                      className="h-6 w-auto object-contain brightness-200 contrast-125"
+                      className="h-8 w-auto object-contain brightness-200 contrast-125"
                     />
                   </div>
-
-                  <div className="flex flex-col gap-3 flex-1 justify-center">
-                    <div className="flex flex-col">
+                  <div className="flex flex-col gap-4 flex-1 justify-center w-full">
+                    {/* NOMBRE Y APELLIDO - Full Width, Left Aligned */}
+                    <div className="w-full">
                       <input
                         type="text"
                         placeholder="NOMBRE Y APELLIDO"
                         value={regName}
                         onChange={(e) => setRegName(e.target.value.toUpperCase())}
-                        className="w-full bg-white/5 border-b border-white/20 px-2 py-1 text-xs text-white placeholder:text-white/30 focus:outline-none focus:border-white/50 transition-all uppercase font-bold"
+                        className="w-full bg-transparent text-3xl font-black font-mono text-white placeholder:text-white/20 focus:outline-none tracking-tighter text-left uppercase"
                       />
                     </div>
-                    <div className="flex flex-col">
+
+                    {/* CELULAR Y EDAD - Same Row */}
+                    <div className="w-full flex gap-4">
+                      <div className="flex-1">
+                        <input
+                          type="tel"
+                          placeholder="11 1234-5678"
+                          value={regPhone}
+                          onChange={(e) => setRegPhone(e.target.value)}
+                          className="w-full bg-transparent text-2xl font-black font-mono text-white placeholder:text-white/20 focus:outline-none tracking-tighter text-left"
+                        />
+                      </div>
+                      <div className="w-24">
+                        <input
+                          type="text"
+                          placeholder="EDAD"
+                          value={regAge}
+                          onChange={(e) => setRegAge(e.target.value.replace(/\D/g, '').slice(0, 2))}
+                          className="w-full bg-transparent text-2xl font-black font-mono text-white placeholder:text-white/20 focus:outline-none tracking-tighter text-left"
+                        />
+                      </div>
+                    </div>
+
+                    {/* EMAIL - Full Width, Left Aligned */}
+                    <div className="w-full">
                       <input
                         type="email"
                         placeholder="CORREO ELECTRÓNICO"
                         value={regEmail}
                         onChange={(e) => setRegEmail(e.target.value)}
-                        className="w-full bg-white/5 border-b border-white/20 px-2 py-1 text-xs text-white placeholder:text-white/30 focus:outline-none focus:border-white/50 transition-all font-mono"
+                        className="w-full bg-transparent text-xl font-black font-mono text-white placeholder:text-white/20 focus:outline-none tracking-tighter text-left lowercase"
                       />
                     </div>
-                    <div className="flex flex-col">
-                      <input
-                        type="tel"
-                        placeholder="NÚMERO DE CELULAR"
-                        value={regPhone}
-                        onChange={(e) => setRegPhone(e.target.value)}
-                        className="w-full bg-white/5 border-b border-white/20 px-2 py-1 text-xs text-white placeholder:text-white/30 focus:outline-none focus:border-white/50 transition-all"
-                      />
-                    </div>
-                    <div className="flex flex-col">
-                      <input
-                        type="text"
-                        placeholder="EDAD"
-                        value={regAge}
-                        onChange={(e) => setRegAge(e.target.value.replace(/\D/g, '').slice(0, 2))}
-                        className="w-full bg-white/5 border-b border-white/20 px-2 py-1 text-xs text-white placeholder:text-white/30 focus:outline-none focus:border-white/50 transition-all"
-                      />
-                    </div>
-                  </div>
-
-                  <div className="mt-4 flex justify-center">
-                    <button
-                      type="button"
-                      disabled={!regName || !regEmail || !regPhone || !regAge}
-                      className={`w-full py-2 rounded-full text-[10px] font-black uppercase tracking-[0.2em] transition-all duration-300 ${
-                        (!regName || !regEmail || !regPhone || !regAge)
-                          ? 'bg-white/5 text-white/20 cursor-not-allowed'
-                          : `bg-white text-black hover:bg-white/90 shadow-lg active:scale-95`
-                      }`}
-                    >
-                      CONFIRMAR REGISTRO
-                    </button>
                   </div>
                 </div>
               </motion.div>
             </div>
 
-            {/* Error Message below the card */}
+            {/* Error Message */}
             <AnimatePresence>
               {idError && (
                 <motion.div
@@ -490,6 +485,32 @@ export default function Home() {
                   <span className="text-red-500 text-sm font-bold uppercase tracking-[0.2em]">
                     {idError}
                   </span>
+                </motion.div>
+              )}
+            </AnimatePresence>
+
+            {/* CONFIRMAR Button below the card (only when flipped) */}
+            <AnimatePresence>
+              {isCardFlipped && (
+                <motion.div
+                  initial={{ opacity: 0, scale: 0.9, y: 10 }}
+                  animate={{ opacity: 1, scale: 1, y: 0 }}
+                  exit={{ opacity: 0, scale: 0.9, y: 10 }}
+                  className="mt-10 flex justify-center"
+                >
+                  <motion.button
+                    type="button"
+                    disabled={!regName || !regEmail || !regPhone || !regAge}
+                    whileHover={{ scale: 1.05 }}
+                    whileTap={{ scale: 0.95 }}
+                    className={`px-16 py-4 rounded-full text-lg font-black uppercase tracking-[0.3em] transition-all duration-300 shadow-2xl ${
+                      (!regName || !regEmail || !regPhone || !regAge)
+                        ? 'bg-white/5 text-white/20 cursor-not-allowed grayscale'
+                        : `bg-gradient-to-br ${tierStyles[selectedTier].gradient} text-white shadow-[0_10px_40px_rgba(0,0,0,0.4)]`
+                    }`}
+                  >
+                    CONFIRMAR
+                  </motion.button>
                 </motion.div>
               )}
             </AnimatePresence>
