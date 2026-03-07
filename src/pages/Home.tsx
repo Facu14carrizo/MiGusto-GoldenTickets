@@ -90,12 +90,13 @@ export default function Home() {
   const [isCardFlipped, setIsCardFlipped] = useState(false);
   const [idError, setIdError] = useState<string | null>(null);
 
-  // Estados para el formulario de registro (Dorso)
   const [regName, setRegName] = useState('');
   const [regEmail, setRegEmail] = useState('');
   const [regPhone, setRegPhone] = useState('');
   const [regAge, setRegAge] = useState('');
   const [isRegistered, setIsRegistered] = useState(false);
+  const [showTooltip, setShowTooltip] = useState(false);
+  const [hasValidatedOnce, setHasValidatedOnce] = useState(false);
 
   // Parallax configuration for the rewards section
   const rewardsRef = useRef<HTMLElement>(null);
@@ -164,9 +165,18 @@ export default function Home() {
     setRegEmail(value);
   };
 
-  // Validación de Email (Solo proveedores comunes)
   const isEmailValid = /^[^\s@]+@(gmail|hotmail|yahoo|outlook|icloud)\.(com|com\.ar|es)$/.test(regEmail.toLowerCase());
   const isFormValid = regName.length > 5 && isEmailValid && regPhone.length >= 10 && regAge.length > 0;
+
+  const handleConfirmClick = () => {
+    if (!hasValidatedOnce) {
+      setShowTooltip(true);
+      setHasValidatedOnce(true);
+      setTimeout(() => setShowTooltip(false), 2000);
+    } else {
+      setIsRegistered(true);
+    }
+  };
 
 
   return (
@@ -595,11 +605,29 @@ export default function Home() {
                   initial={{ opacity: 0, scale: 0.9, y: 10 }}
                   animate={{ opacity: 1, scale: 1, y: 0 }}
                   exit={{ opacity: 0, scale: 0.9, y: 10 }}
-                  className="mt-10 flex justify-center"
+                  className="mt-10 flex flex-col items-center relative"
                 >
+                  {/* Tooltip confirmation message */}
+                  <AnimatePresence>
+                    {showTooltip && (
+                      <motion.div
+                        initial={{ opacity: 0, y: 10, scale: 0.8 }}
+                        animate={{ opacity: 1, y: -20, scale: 1 }}
+                        exit={{ opacity: 0, y: 10, scale: 0.8 }}
+                        className="absolute bottom-full mb-2 z-50 pointer-events-none"
+                      >
+                        <div className="bg-white text-black text-[10px] font-bold px-4 py-2 rounded-xl shadow-2xl whitespace-nowrap relative border-2 border-black/5">
+                          Verificar que sus datos esten correctos antes de confirmar.
+                          {/* Tooltip arrow */}
+                          <div className="absolute top-full left-1/2 -translate-x-1/2 w-3 h-3 bg-white rotate-45 -mt-1.5 border-r-2 border-b-2 border-black/5" />
+                        </div>
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
+
                   <motion.button
                     type="button"
-                    onClick={() => setIsRegistered(true)}
+                    onClick={handleConfirmClick}
                     disabled={!isFormValid}
                     whileHover={isFormValid ? { scale: 1.05 } : {}}
                     whileTap={isFormValid ? { scale: 0.95 } : {}}
