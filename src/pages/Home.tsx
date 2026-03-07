@@ -73,8 +73,31 @@ const tierStyles = {
 export default function Home() {
   const [openFaq, setOpenFaq] = useState<number | null>(null);
   const [selectedTier, setSelectedTier] = useState<TicketTier>('oro');
-  const [ticketId, setTicketId] = useState('');
-  const [ticketName, setTicketName] = useState('');
+  const [ccNum, setCcNum] = useState(['', '', '', '']);
+  const [expMonth, setExpMonth] = useState('');
+  const [expYear, setExpYear] = useState('');
+  const [cardName, setCardName] = useState('');
+
+  const handleCcNumChange = (index: number, value: string) => {
+    if (!/^\d*$/.test(value)) return;
+    const newCcNum = [...ccNum];
+    newCcNum[index] = value;
+    setCcNum(newCcNum);
+    if (value.length === 4 && index < 3) {
+      document.getElementById(`cc-num-${index + 1}`)?.focus();
+    }
+  };
+
+  const handleExpChange = (type: 'month' | 'year', value: string) => {
+    if (!/^\d*$/.test(value)) return;
+    if (type === 'month') {
+      setExpMonth(value);
+      if (value.length === 2) document.getElementById('exp-year')?.focus();
+    } else {
+      setExpYear(value);
+      if (value.length === 2) document.getElementById('card-name')?.focus();
+    }
+  };
   const [isCardFlipped, setIsCardFlipped] = useState(false);
 
   return (
@@ -263,29 +286,7 @@ export default function Home() {
               Tu Golden Ticket
             </h3>
 
-            {/* Inputs arriba de la tarjeta */}
-            <div className="space-y-4 mb-8">
-              <div>
-                <label className="text-xs font-bold uppercase tracking-widest text-white/50 block mb-2 ml-1">ID del Ticket</label>
-                <input
-                  type="text"
-                  value={ticketId}
-                  onChange={(e) => setTicketId(e.target.value)}
-                  placeholder="Ej: ORO-XXX"
-                  className="w-full px-5 py-3 bg-white/5 border border-white/10 rounded-xl text-migusto-crema placeholder:text-white/20 focus:outline-none focus:ring-2 focus:ring-migusto-rojo/50 font-medium uppercase tracking-tight"
-                />
-              </div>
-              <div>
-                <label className="text-xs font-bold uppercase tracking-widest text-white/50 block mb-2 ml-1">Nombre del Titular</label>
-                <input
-                  type="text"
-                  value={ticketName}
-                  onChange={(e) => setTicketName(e.target.value)}
-                  placeholder="Ej: Juan Pérez"
-                  className="w-full px-5 py-3 bg-white/5 border border-white/10 rounded-xl text-migusto-crema placeholder:text-white/20 focus:outline-none focus:ring-2 focus:ring-migusto-rojo/50 font-medium"
-                />
-              </div>
-            </div>
+            {/* Inputs eliminados, ahora están dentro de la tarjeta */}
 
             {/* Molde de tarjeta flipeable - placeholder para CodePen */}
             <div
@@ -319,19 +320,81 @@ export default function Home() {
               >
                 {/* Cara frontal */}
                 <div
-                  className="absolute inset-0 flex flex-col items-center justify-center p-6"
+                  className="absolute inset-0 flex flex-col p-6"
                   style={{ backfaceVisibility: 'hidden', transform: 'rotateY(0deg)' }}
                 >
-                  <Award className={`h-16 w-16 mb-4 ${tierStyles[selectedTier].icon}`} />
-                  <p className={`text-2xl font-black uppercase tracking-tighter ${tierStyles[selectedTier].label}`}>
-                    {selectedTier === 'oro' ? 'ORO' : selectedTier === 'plata' ? 'PLATA' : 'BRONCE'}
-                  </p>
-                  <p className="text-migusto-crema/80 text-sm mt-2 font-medium uppercase">
-                    Golden Ticket · Mi Gusto Lovers
-                  </p>
-                  {ticketId && <p className="text-migusto-crema/60 text-xs mt-4 font-mono">{ticketId}</p>}
-                  {ticketName && <p className="text-migusto-crema font-bold mt-1">{ticketName}</p>}
-                  <p className="text-migusto-crema/40 text-[10px] mt-6 uppercase">Click para voltear</p>
+                  <div className="flex justify-between items-start w-full">
+                    <span className={`text-lg font-black uppercase tracking-widest opacity-80 ${tierStyles[selectedTier].label}`}>
+                      Mi Gusto Lovers
+                    </span>
+                    <Award className={`h-8 w-8 ${tierStyles[selectedTier].icon}`} />
+                  </div>
+                  
+                  {/* Chip SIM */}
+                  <div className="mt-4 mb-2">
+                    <div className="w-12 h-8 rounded-md bg-white/20 border border-white/30 backdrop-blur-sm relative overflow-hidden flex items-center justify-center">
+                       <div className="absolute inset-0 bg-gradient-to-br from-white/10 to-transparent"></div>
+                       <div className="w-full h-[1px] bg-white/30"></div>
+                       <div className="absolute h-full w-[1px] bg-white/30"></div>
+                    </div>
+                  </div>
+
+                  {/* Card Number Inputs */}
+                  <div className="flex justify-between w-full mt-2 gap-2" onClick={(e) => e.stopPropagation()}>
+                    {[0, 1, 2, 3].map((index) => (
+                      <input
+                        key={index}
+                        id={`cc-num-${index}`}
+                        type="text"
+                        maxLength={4}
+                        value={ccNum[index]}
+                        onChange={(e) => handleCcNumChange(index, e.target.value)}
+                        placeholder="0000"
+                        className="w-full bg-transparent text-xl md:text-2xl font-mono text-white placeholder:text-white/30 focus:outline-none tracking-widest text-center"
+                      />
+                    ))}
+                  </div>
+
+                  {/* Exp Date & Name */}
+                  <div className="mt-auto flex justify-between items-end w-full" onClick={(e) => e.stopPropagation()}>
+                    <div className="flex flex-col w-3/5">
+                      <span className="text-[8px] uppercase tracking-widest text-white/50 mb-1 ml-1">Cardholder Name</span>
+                      <input
+                        id="card-name"
+                        type="text"
+                        placeholder="TU NOMBRE"
+                        value={cardName}
+                        onChange={(e) => setCardName(e.target.value.toUpperCase())}
+                        maxLength={24}
+                        className="bg-transparent text-sm md:text-base font-bold text-white placeholder:text-white/30 focus:outline-none tracking-widest uppercase w-full truncate"
+                      />
+                    </div>
+                    
+                    <div className="flex flex-col items-end justify-end w-2/5">
+                      <span className="text-[8px] uppercase tracking-widest text-white/50 mb-1 mr-1">Valid Thru</span>
+                      <div className="flex items-center text-sm font-mono gap-1">
+                        <input
+                          id="exp-month"
+                          type="text"
+                          placeholder="MM"
+                          value={expMonth}
+                          onChange={(e) => handleExpChange('month', e.target.value)}
+                          maxLength={2}
+                          className="w-7 bg-transparent text-white placeholder:text-white/30 focus:outline-none text-center"
+                        />
+                        <span className="text-white/40">/</span>
+                        <input
+                          id="exp-year"
+                          type="text"
+                          placeholder="AA"
+                          value={expYear}
+                          onChange={(e) => handleExpChange('year', e.target.value)}
+                          maxLength={2}
+                          className="w-7 bg-transparent text-white placeholder:text-white/30 focus:outline-none text-center"
+                        />
+                      </div>
+                    </div>
+                  </div>
                 </div>
                 {/* Cara trasera */}
                 <div
