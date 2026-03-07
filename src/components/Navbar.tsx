@@ -14,7 +14,7 @@ export default function Navbar() {
               <img
                 src={`${import.meta.env.BASE_URL}Logo Mi Gusto 2025.png`}
                 alt="Mi Gusto"
-                className="h-16 w-auto object-contain"
+                className="h-12 md:h-16 w-auto object-contain"
               />
             </motion.div>
           </Link>
