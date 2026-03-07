@@ -1,6 +1,10 @@
 import { useState, useRef, useEffect } from 'react';
 import { motion, useScroll, useTransform, AnimatePresence } from 'framer-motion';
-import { Award, CheckCircle2, ChevronDown, AlertCircle } from 'lucide-react';
+import { 
+  CheckCircle2, 
+  ChevronDown, 
+  AlertCircle 
+} from 'lucide-react';
 import { EpicTitle, EpicSubtitle } from '../components/EpicText';
 
 const faqs = [
@@ -321,12 +325,17 @@ export default function Home() {
                   <div className="absolute -inset-10 bg-gradient-to-br from-white/10 via-transparent to-white/10 opacity-30 animate-rotate-slow pointer-events-none" />
                 )}
 
-                <div className={`relative p-5 rounded-3xl mb-4 transition-all duration-500 ${selectedTier === tier
+                <div className={`relative p-5 rounded-3xl mb-4 transition-all duration-500 flex items-center justify-center ${selectedTier === tier
                   ? `${tierStyles[tier].glow} shadow-[0_0_30px_rgba(255,255,255,0.2)] scale-110`
                   : 'bg-white/5 group-hover:bg-white/10'
                   }`}>
-                  <Award className={`h-12 w-12 md:h-16 md:w-16 transition-all duration-500 ${selectedTier === tier ? tierStyles[tier].icon : 'text-white/40 group-hover:text-white/60'
-                    }`} />
+                  <img 
+                    src={`${import.meta.env.BASE_URL}Logo Mi Gusto 2025.png`}
+                    alt="Mi Gusto"
+                    className={`h-12 w-auto md:h-16 object-contain transition-all duration-500 brightness-200 contrast-125 ${
+                      selectedTier === tier ? 'drop-shadow-lg' : 'grayscale opacity-40 group-hover:opacity-70 group-hover:grayscale-0'
+                    }`}
+                  />
                 </div>
 
                 <h3 className={`relative text-2xl md:text-3xl font-black uppercase tracking-tight transition-all duration-500 ${selectedTier === tier
