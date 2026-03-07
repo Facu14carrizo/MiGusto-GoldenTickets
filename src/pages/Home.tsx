@@ -74,8 +74,6 @@ export default function Home() {
   const [openFaq, setOpenFaq] = useState<number | null>(null);
   const [selectedTier, setSelectedTier] = useState<TicketTier>('oro');
   const [ticketId, setTicketId] = useState('');
-  const [fullName, setFullName] = useState('');
-  const [email, setEmail] = useState('');
   
   const [isCardFlipped, setIsCardFlipped] = useState(false);
   const [showConfirmAction, setShowConfirmAction] = useState(false);
@@ -91,7 +89,14 @@ export default function Home() {
   const yGrid = useTransform(scrollYProgress, [0, 1], ["-20%", "20%"]);
   const yContentBase = useTransform(scrollYProgress, [0, 1], ["0%", "5%"]);
 
-  const isFormComplete = ticketId.trim() !== '' && fullName.trim() !== '' && email.trim() !== '';
+  const isFormComplete = ticketId.trim().length === 5;
+
+  const handleTicketIdChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    // Solo permite letras y números, máximo 5 caracteres
+    const value = e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 5);
+    setTicketId(value);
+    setShowConfirmAction(false);
+  };
 
   const handleConfirmClick = () => {
     if (!isFormComplete) return;
@@ -352,46 +357,17 @@ export default function Home() {
                   </div>
 
                   {/* Inputs Section */}
-                  <div className="flex flex-col flex-1 justify-end w-full relative z-10 pb-2">
-                    {/* Row 1: ID & Name */}
-                    <div className="flex justify-between items-end gap-4 mb-4">
-                      {/* ID Input */}
-                      <div className="flex-[0.4]">
-                        <input
-                          type="text"
-                          maxLength={12}
-                          value={ticketId}
-                          onChange={(e) => { setTicketId(e.target.value.toUpperCase()); setShowConfirmAction(false); }}
-                          disabled={isConfirmed}
-                          placeholder="0000 0000"
-                          className="w-full bg-transparent text-xl md:text-2xl font-mono text-white placeholder:text-white/40 focus:outline-none tracking-widest transition-colors disabled:opacity-80 disabled:cursor-default"
-                        />
-                      </div>
-
-                      {/* Name Input */}
-                      <div className="flex-[0.6]">
-                        <input
-                          type="text"
-                          placeholder="TU NOMBRE"
-                          value={fullName}
-                          onChange={(e) => { setFullName(e.target.value.toUpperCase()); setShowConfirmAction(false); }}
-                          maxLength={32}
-                          disabled={isConfirmed}
-                          className="w-full bg-transparent text-sm md:text-base font-bold text-white placeholder:text-white/40 focus:outline-none tracking-widest uppercase text-right truncate disabled:opacity-80 disabled:cursor-default"
-                        />
-                      </div>
-                    </div>
-
-                    {/* Row 2: Email */}
-                    <div className="w-full">
+                  <div className="flex flex-col flex-1 justify-center items-center w-full relative z-10 pt-4">
+                    {/* ID Input Only */}
+                    <div className="w-full text-center">
                       <input
-                        type="email"
-                        placeholder="CORREO ELECTRÓNICO"
-                        value={email}
-                        onChange={(e) => { setEmail(e.target.value); setShowConfirmAction(false); }}
-                        maxLength={50}
+                        type="text"
+                        maxLength={5}
+                        value={ticketId}
+                        onChange={handleTicketIdChange}
                         disabled={isConfirmed}
-                        className="w-full bg-transparent text-xs md:text-sm font-mono text-white placeholder:text-white/40 focus:outline-none tracking-[0.1em] truncate disabled:opacity-80 disabled:cursor-default"
+                        placeholder="IDXXX"
+                        className="w-full bg-transparent text-4xl font-black font-mono text-white placeholder:text-white/30 focus:outline-none tracking-[0.2em] transition-colors disabled:opacity-80 disabled:cursor-default text-center"
                       />
                     </div>
                   </div>
@@ -415,15 +391,13 @@ export default function Home() {
                  type="button"
                  disabled={!isFormComplete || isConfirmed}
                  onClick={handleConfirmClick}
-                 className={`px-10 py-4 rounded-xl font-black uppercase tracking-widest transition-all duration-300 ${
+                 className={`px-12 py-4 rounded-full font-black uppercase tracking-widest transition-all duration-300 ${
                    !isFormComplete || isConfirmed 
                      ? 'bg-white/5 text-white/20 border border-white/5 cursor-not-allowed'
-                     : showConfirmAction
-                       ? 'bg-amber-500 text-black hover:bg-amber-400 shadow-[0_0_20px_rgba(245,158,11,0.4)] hover:shadow-[0_0_30px_rgba(245,158,11,0.6)] transform hover:-translate-y-1'
-                       : 'bg-migusto-rojo text-white hover:bg-migusto-rojo-claro shadow-premium hover:shadow-[0_0_20px_rgba(220,38,38,0.5)] transform hover:-translate-y-1'
+                     : `bg-gradient-to-br text-white hover:brightness-110 transform hover:-translate-y-1 ${tierStyles[selectedTier].gradient} ${showConfirmAction ? 'shadow-[0_0_40px_rgba(255,255,255,0.4)] scale-105' : tierStyles[selectedTier].shadow}`
                  }`}
                >
-                 {isConfirmed ? 'Ticket Confirmado' : showConfirmAction ? 'Sí, Confirmar Ticket' : 'Confirmar'}
+                 {isConfirmed ? 'TICKET CONFIRMADO' : showConfirmAction ? 'SÍ, CONFIRMAR TICKET' : 'CONFIRMAR'}
                </button>
             </div>
           </motion.div>
