@@ -7,6 +7,7 @@ import {
   MapPin
 } from 'lucide-react';
 import { EpicTitle, EpicSubtitle } from '../components/EpicText';
+import { supabase } from '../lib/supabase';
 
 const faqs = [
   {
@@ -44,17 +45,6 @@ const faqs = [
 ];
 
 // --- CONFIGURACIÓN DE DATOS ---
-
-// IDs válidos simulando una base de datos real. 
-// Cada ID está vinculado a una categoría de ticket (oro, plata, bronce).
-const validDatabaseIds: Record<string, TicketTier> = {
-  'MG001A': 'oro',
-  'MG999Z': 'oro',
-  'PL123B': 'plata',
-  'PL888X': 'plata',
-  'BR456C': 'bronce',
-  'BR777Y': 'bronce',
-};
 
 type TicketTier = 'oro' | 'plata' | 'bronce';
 
@@ -94,14 +84,46 @@ export default function Home() {
   const [ticketId, setTicketId] = useState('');
   const [isCardFlipped, setIsCardFlipped] = useState(false);
   const [idError, setIdError] = useState<string | null>(null);
+  const [isValidating, setIsValidating] = useState(false);
 
   const [regName, setRegName] = useState('');
   const [regEmail, setRegEmail] = useState('');
   const [regPhone, setRegPhone] = useState('');
-  const [regAge, setRegAge] = useState('');
+  const [regDni, setRegDni] = useState('');
   const [isRegistered, setIsRegistered] = useState(false);
-  const [showTooltip, setShowTooltip] = useState(false);
-  const [hasValidatedOnce, setHasValidatedOnce] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isSuccessfullyConfirmed, setIsSuccessfullyConfirmed] = useState(false);
+
+  // --- PERSISTENCIA LOCALSTORAGE ---
+  useEffect(() => {
+    const savedData = localStorage.getItem('mi-gusto-ticket-reg');
+    if (savedData) {
+      try {
+        const data = JSON.parse(savedData);
+        setTicketId(data.ticketId || '');
+        setRegName(data.regName || '');
+        setRegEmail(data.regEmail || '');
+        setRegPhone(data.regPhone || '');
+        setRegDni(data.regDni || '');
+        setIsRegistered(data.isRegistered || false);
+        setSelectedTier(data.selectedTier || 'oro');
+        if (data.isRegistered) {
+          setIsCardFlipped(true);
+        }
+      } catch (e) {
+        console.error("Error loading localStorage", e);
+      }
+    }
+  }, []);
+
+  const saveToLocalStorage = (data: any) => {
+    localStorage.setItem('mi-gusto-ticket-reg', JSON.stringify({
+      ...data,
+      ticketId,
+      selectedTier,
+      isRegistered: true
+    }));
+  };
 
   // Parallax configuration for the rewards section
   const rewardsRef = useRef<HTMLElement>(null);
@@ -129,19 +151,58 @@ export default function Home() {
 
   /**
    * Efecto de Validación:
-   * Cuando el ID llega a 6 caracteres, gira la tarjeta automáticamente.
-   * Para esta etapa, permitimos que CUALQUIER ID de 6 caracteres proceda al registro.
+   * Cuando el ID llega a 6 caracteres, valida contra la base de datos de Supabase.
    */
   useEffect(() => {
-    if (ticketId.length === 6) {
-      // Intentamos machear con la base de datos para el estilo,
-      // pero si no existe, permitimos continuar con estilo 'oro' por defecto.
-      const matchedTier = validDatabaseIds[ticketId] || 'oro';
+    const validateTicket = async () => {
+      if (ticketId.length === 6) {
+        // 1. Validación de Formato: MG + 3 números + (G, S, B)
+        const ticketRegex = /^MG\d{3}[GSB]$/;
+        if (!ticketRegex.test(ticketId)) {
+          setIdError('Formato inválido (Ej: MG001G)');
+          return;
+        }
 
-      setSelectedTier(matchedTier);
-      setIsCardFlipped(true);
-      setIdError(null);
-    }
+        setIsValidating(true);
+        try {
+          // 2. Consulta a Supabase
+          const { data, error } = await supabase
+            .from('tickets')
+            .select('*')
+            .eq('id_ticket', ticketId)
+            .single();
+
+          if (error || !data) {
+            setIdError('Ticket no encontrado');
+            return;
+          }
+
+          // 2.2 Validación de Uso: Verificar si ya fue utilizado
+          if (data.usado) {
+            setIdError('Este ticket ya fue utilizado');
+            return;
+          }
+
+          // 3. Mapeo de Categoría
+          const tierMap: Record<string, TicketTier> = {
+            'ORO': 'oro',
+            'PLATA': 'plata',
+            'BRONCE': 'bronce'
+          };
+
+          setSelectedTier(tierMap[data.tipo] || 'oro');
+          setIsCardFlipped(true);
+          setIdError(null);
+        } catch (err) {
+          console.error('Error validating ticket:', err);
+          setIdError('Error al conectar con el servidor');
+        } finally {
+          setIsValidating(false);
+        }
+      }
+    };
+
+    validateTicket();
   }, [ticketId]);
 
   // --- HANDLERS PARA REGISTRO ---
@@ -158,10 +219,10 @@ export default function Home() {
     setRegPhone(value);
   };
 
-  const handleAgeChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    // Solo números, máx 2 dígitos
-    const value = e.target.value.replace(/\D/g, '').slice(0, 2);
-    setRegAge(value);
+  const handleDniChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    // Solo números, máx 9 dígitos (DNI)
+    const value = e.target.value.replace(/\D/g, '').slice(0, 9);
+    setRegDni(value);
   };
 
   const handleEmailChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -170,24 +231,73 @@ export default function Home() {
     setRegEmail(value);
   };
 
-  const isEmailValid = /^[^\s@]+@(gmail|hotmail|yahoo|outlook|icloud)\.(com|com\.ar|es)$/.test(regEmail.toLowerCase());
-  const isFormValid = regName.length > 5 && isEmailValid && regPhone.length >= 10 && regAge.length > 0;
+  const isEmailValid = regEmail.includes('@');
+  const isFormValid = regName.length >= 2 && isEmailValid && regPhone.length >= 6 && regDni.length >= 1;
 
-  const handleConfirmClick = () => {
-    if (!hasValidatedOnce) {
-      setShowTooltip(true);
-      setHasValidatedOnce(true);
-      setTimeout(() => setShowTooltip(false), 2000);
-    } else {
+  useEffect(() => {
+    console.log('Form Validity:', { isFormValid, name: regName.length, email: isEmailValid, phone: regPhone.length, dni: regDni.length });
+  }, [isFormValid, regName, regEmail, regPhone, regDni]);
+
+  const handleConfirmClick = async () => {
+    if (isSubmitting) return;
+
+    setIsSubmitting(true);
+    try {
+      // --- PROCESAMIENTO DE DATOS ---
+      // Dividimos el nombre en nombre y apellido para Supabase
+      const nameParts = regName.trim().split(/\s+/);
+      const nombre = nameParts[0] || '';
+      const apellido = nameParts.length > 1 ? nameParts.slice(1).join(' ') : 'REQUERIDO';
+
+      // 1. Guardar en Supabase - Tabla 'registros'
+      const { error: registroError } = await supabase
+        .from('registros')
+        .insert([
+          {
+            id_ticket: ticketId,
+            nombre: nombre,
+            apellido: apellido,
+            dni: regDni,
+            telefono: regPhone,
+            fecha_registro: new Date().toISOString(),
+            activo: true
+          }
+        ]);
+
+      if (registroError) throw registroError;
+
+      // 2. Actualizar Ticket - Tabla 'tickets'
+      // Marcamos como usado y guardamos metadata de validación
+      const { error: ticketError } = await supabase
+        .from('tickets')
+        .update({
+          usado: true,
+          dni_validado: regDni,
+          fecha_validacion: new Date().toISOString()
+        })
+        .eq('id_ticket', ticketId);
+
+      if (ticketError) throw ticketError;
+
+      // 3. Guardar en LocalStorage
+      saveToLocalStorage({ regName, regPhone, regEmail, regDni });
+
+      // 4. Update UI
       setIsRegistered(true);
+      setIsSuccessfullyConfirmed(true);
+    } catch (err) {
+      console.error('Error during registration:', err);
+    } finally {
+      setIsSubmitting(false);
     }
   };
+
 
 
   return (
     <div className="min-h-screen relative">
       {/* Hero Section */}
-      <section className="relative pt-0 pb-24 px-4 overflow-hidden">
+      <section className="relative pt-0 pb-24 px-4 overflow-hidden relative">
         <div className="absolute inset-0 z-0">
           <div className="absolute top-1/4 left-1/4 w-[500px] h-[500px] bg-migusto-rojo/10 blur-[150px] rounded-full"></div>
           <div className="absolute bottom-1/4 right-1/4 w-[400px] h-[400px] bg-migusto-dorado/10 blur-[150px] rounded-full"></div>
@@ -381,6 +491,22 @@ export default function Home() {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
           >
+            <AnimatePresence>
+              {isSuccessfullyConfirmed && (
+                <motion.div
+                  initial={{ opacity: 0, scale: 0.9, y: -20 }}
+                  animate={{ opacity: 1, scale: 1, y: 0 }}
+                  className="bg-green-500/90 backdrop-blur-md text-white px-6 py-4 rounded-3xl mb-8 text-center border border-green-400/50 shadow-[0_0_30px_rgba(34,197,94,0.3)]"
+                >
+                  <div className="flex items-center justify-center gap-3 mb-1">
+                    <CheckCircle2 className="w-6 h-6 text-green-200" />
+                    <h4 className="text-xl font-black uppercase tracking-widest">¡Registro Exitoso!</h4>
+                  </div>
+                  <p className="text-sm font-medium opacity-90">Tu ticket ha sido activado correctamente.</p>
+                </motion.div>
+              )}
+            </AnimatePresence>
+
             <h3 className="text-xl font-serif font-bold text-migusto-crema text-center mb-6">
               Tu Lover Ticket
             </h3>
@@ -454,12 +580,13 @@ export default function Home() {
                             value={ticketId}
                             onChange={handleTicketIdChange}
                             placeholder="MG000X"
+                            disabled={isValidating}
                             animate={idError ? {
                               x: [0, -10, 10, -10, 10, -10, 10, 0],
                               color: ["#fff", "#ef4444", "#ef4444", "#fff"]
                             } : { x: 0, color: "#fff" }}
                             transition={{ duration: 1 }}
-                            className={`w-full bg-transparent text-6xl font-black font-mono placeholder:text-white/30 focus:outline-none tracking-[0.2em] transition-colors text-center shadow-none border-none`}
+                            className={`w-full bg-transparent text-6xl font-black font-mono placeholder:text-white/30 focus:outline-none tracking-[0.2em] transition-colors text-center shadow-none border-none ${isValidating ? 'animate-pulse opacity-50' : ''}`}
                           />
                         ) : (
                           <motion.span
@@ -556,28 +683,28 @@ export default function Home() {
                           )}
                         </AnimatePresence>
                       </div>
-                      <div className="w-24">
+                      <div className="w-40">
                         <AnimatePresence mode="wait">
                           {!isRegistered ? (
                             <motion.input
-                              key="age-input"
+                              key="dni-input"
                               initial={{ opacity: 0 }}
                               animate={{ opacity: 1 }}
                               exit={{ opacity: 0 }}
                               type="text"
-                              placeholder="EDAD"
-                              value={regAge}
-                              onChange={handleAgeChange}
+                              placeholder="DNI"
+                              value={regDni}
+                              onChange={handleDniChange}
                               className="w-full bg-transparent text-3xl font-black font-mono text-white placeholder:text-white/20 focus:outline-none tracking-tighter text-left"
                             />
                           ) : (
                             <motion.span
-                              key="age-printed"
+                              key="dni-printed"
                               initial={{ scale: 1.2, opacity: 0, filter: 'brightness(2)' }}
                               animate={{ scale: 1, opacity: 1, filter: 'brightness(1)' }}
                               className={`block w-full text-3xl font-black font-mono tracking-tighter text-left drop-shadow-[0_2px_4px_rgba(0,0,0,0.5)] ${tierStyles[selectedTier].label}`}
                             >
-                              {regAge}
+                              {regDni}
                             </motion.span>
                           )}
                         </AnimatePresence>
@@ -625,9 +752,9 @@ export default function Home() {
                   exit={{ opacity: 0, y: -10 }}
                   className="mt-6 text-center"
                 >
-                  <span className="text-red-500 text-sm font-bold uppercase tracking-[0.2em]">
+                  <p className="text-white bg-red-500/80 backdrop-blur-md px-6 py-2 rounded-full text-sm font-bold inline-block border border-red-400/50 shadow-lg">
                     {idError}
-                  </span>
+                  </p>
                 </motion.div>
               )}
             </AnimatePresence>
@@ -641,36 +768,23 @@ export default function Home() {
                   exit={{ opacity: 0, scale: 0.9, y: 10 }}
                   className="mt-10 flex flex-col items-center relative"
                 >
-                  {/* Tooltip confirmation message */}
-                  <AnimatePresence>
-                    {showTooltip && (
-                      <motion.div
-                        initial={{ opacity: 0, y: 10, scale: 0.8 }}
-                        animate={{ opacity: 1, y: -20, scale: 1 }}
-                        exit={{ opacity: 0, y: 10, scale: 0.8 }}
-                        className="absolute bottom-full mb-2 z-50 pointer-events-none"
-                      >
-                        <div className="bg-white text-black text-[10px] font-bold px-4 py-2 rounded-xl shadow-2xl whitespace-nowrap relative border-2 border-black/5">
-                          Verificar que sus datos esten correctos antes de confirmar.
-                          {/* Tooltip arrow */}
-                          <div className="absolute top-full left-1/2 -translate-x-1/2 w-3 h-3 bg-white rotate-45 -mt-1.5 border-r-2 border-b-2 border-black/5" />
-                        </div>
-                      </motion.div>
-                    )}
-                  </AnimatePresence>
-
                   <motion.button
                     type="button"
                     onClick={handleConfirmClick}
-                    disabled={!isFormValid}
-                    whileHover={isFormValid ? { scale: 1.05 } : {}}
-                    whileTap={isFormValid ? { scale: 0.95 } : {}}
-                    className={`px-8 py-3 rounded-full text-base font-black uppercase tracking-[0.2em] transition-all duration-300 shadow-2xl ${!isFormValid
+                    disabled={!isFormValid || isSubmitting}
+                    whileHover={(isFormValid && !isSubmitting) ? { scale: 1.05 } : {}}
+                    whileTap={(isFormValid && !isSubmitting) ? { scale: 0.95 } : {}}
+                    className={`px-8 py-3 rounded-full text-base font-black uppercase tracking-[0.2em] transition-all duration-300 shadow-2xl relative ${(!isFormValid || isSubmitting)
                       ? 'bg-white/5 text-white/20 cursor-not-allowed grayscale'
                       : `bg-gradient-to-br ${tierStyles[selectedTier].gradient} text-white shadow-[0_10px_40px_rgba(0,0,0,0.4)]`
                       }`}
                   >
-                    CONFIRMAR
+                    {isSubmitting ? (
+                      <div className="flex items-center gap-2">
+                        <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                        CARGANDO...
+                      </div>
+                    ) : 'CONFIRMAR'}
                   </motion.button>
                 </motion.div>
               )}
