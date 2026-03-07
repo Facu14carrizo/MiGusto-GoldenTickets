@@ -953,7 +953,7 @@ export default function Home() {
       {/* Terms Section */}
       <section className="py-16 px-4 relative">
         <div className="container mx-auto max-w-6xl relative">
-          <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-8">
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-6 md:gap-8">
             {[
               { icon: AlertCircle, title: 'Personal e Intransferible', text: 'Solo válido para el titular registrado' },
               { icon: AlertCircle, title: 'No Acumulable', text: 'Un premio por persona' },
@@ -964,11 +964,11 @@ export default function Home() {
                 key={index}
                 className="text-center group"
               >
-                <div className="inline-flex p-4 rounded-2xl bg-white/5 border border-white/10 mb-6 group-hover:bg-migusto-rojo/10 group-hover:border-migusto-rojo/30 transition-all">
-                  <item.icon className="h-10 w-10 text-migusto-rojo" />
+                <div className="inline-flex p-3 md:p-4 rounded-xl md:rounded-2xl bg-white/5 border border-white/10 mb-3 md:mb-6 group-hover:bg-migusto-rojo/10 group-hover:border-migusto-rojo/30 transition-all">
+                  <item.icon className="h-7 w-7 md:h-10 md:w-10 text-migusto-rojo" />
                 </div>
-                <h3 className="text-lg font-black text-migusto-crema mb-3 uppercase tracking-tighter">{item.title}</h3>
-                <p className="text-sm text-migusto-crema/40 leading-relaxed">{item.text}</p>
+                <h3 className="text-xs md:text-lg font-black text-migusto-crema mb-1 md:mb-3 uppercase tracking-tighter">{item.title}</h3>
+                <p className="text-[10px] md:text-sm text-migusto-crema/40 leading-tight md:leading-relaxed h-8 md:h-auto flex items-center justify-center underline-offset-2">{item.text}</p>
               </div>
             ))}
           </div>
