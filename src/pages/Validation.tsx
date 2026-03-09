@@ -14,12 +14,49 @@ type ValidationResult = {
     tipo?: 'BRONCE' | 'PLATA' | 'ORO';
     nombre?: string;
     apellido?: string;
+    id_registro?: string;
+    fecha_registro?: string;
+    ya_canjeado_este_mes?: boolean;
+    ultima_fecha_canje?: string;
+    expirado?: boolean;
+    meses_vigencia?: number;
+    recien_canjeado?: boolean;
 };
 
 export default function Validation() {
     const [isLoading, setIsLoading] = useState(false);
     const [result, setResult] = useState<ValidationResult | null>(null);
-    const { register, handleSubmit, formState: { errors } } = useForm<ValidationForm>();
+    const [dniValue, setDniValue] = useState('');
+    const { register, handleSubmit, formState: { errors }, setValue } = useForm<ValidationForm>();
+
+    const handleDniChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        // Solo números
+        let value = e.target.value.replace(/\D/g, '');
+
+        // Limitar a 8 dígitos
+        if (value.length > 8) value = value.slice(0, 8);
+
+        // Aplicar máscara: XX-XXX-XXX o X-XXX-XXX dependiendo el largo
+        let formattedValue = '';
+        if (value.length > 0) {
+            if (value.length <= 7) {
+                // Formato para 7 dígitos: X-XXX-XXX
+                if (value.length <= 1) {
+                    formattedValue = value;
+                } else if (value.length <= 4) {
+                    formattedValue = value.slice(0, 1) + '-' + value.slice(1);
+                } else {
+                    formattedValue = value.slice(0, 1) + '-' + value.slice(1, 4) + '-' + value.slice(4);
+                }
+            } else {
+                // Formato para 8 dígitos: XX-XXX-XXX
+                formattedValue = value.slice(0, 2) + '-' + value.slice(2, 5) + '-' + value.slice(5);
+            }
+        }
+
+        setDniValue(formattedValue);
+        setValue('dni', formattedValue, { shouldValidate: true });
+    };
 
     const onSubmit = async (data: ValidationForm) => {
         setIsLoading(true);
@@ -29,7 +66,7 @@ export default function Validation() {
             // 1. Buscamos el registro activo por DNI
             const { data: registro, error: regError } = await supabase
                 .from('registros')
-                .select('id_ticket, activo, nombre, apellido')
+                .select('id, id_ticket, activo, nombre, apellido, fecha_registro')
                 .eq('dni', data.dni)
                 .eq('activo', true)
                 .maybeSingle();
@@ -42,29 +79,76 @@ export default function Validation() {
                     message: 'El DNI ingresado no cuenta con un beneficio activo en el sistema.'
                 });
             } else {
-                // 2. Buscamos el tipo de ticket
+                // 2. Buscamos el tipo de ticket y su vigencia
                 const { data: ticket, error: ticketError } = await supabase
                     .from('tickets')
-                    .select('tipo')
+                    .select('tipo, meses')
                     .eq('id_ticket', registro.id_ticket)
                     .single();
 
                 if (ticketError) throw ticketError;
 
+                // 3. Verificamos si el ticket ha expirado
+                const fechaRegistro = new Date(registro.fecha_registro);
+                const mesesVigencia = ticket.meses;
+                const fechaExpiracion = new Date(fechaRegistro);
+                fechaExpiracion.setMonth(fechaExpiracion.getMonth() + mesesVigencia);
+
+                const ahora = new Date();
+                const expirado = ahora > fechaExpiracion;
+
+                // 4. Verificamos si ya canjeó este mes
+                const primerDiaMes = new Date(ahora.getFullYear(), ahora.getMonth(), 1).toISOString();
+
+                const { data: canje, error: canjeError } = await supabase
+                    .from('canjes')
+                    .select('fecha_canje')
+                    .eq('id_registro', registro.id)
+                    .gte('fecha_canje', primerDiaMes)
+                    .maybeSingle();
+
+                if (canjeError) throw canjeError;
+
                 setResult({
                     success: true,
-                    message: 'Beneficio validado con éxito.',
+                    message: expirado ? 'El ticket ha vencido.' : 'Beneficio validado con éxito.',
                     tipo: ticket.tipo as 'BRONCE' | 'PLATA' | 'ORO',
                     nombre: registro.nombre,
-                    apellido: registro.apellido
+                    apellido: registro.apellido,
+                    id_registro: registro.id,
+                    fecha_registro: registro.fecha_registro,
+                    ya_canjeado_este_mes: !!canje,
+                    ultima_fecha_canje: canje?.fecha_canje,
+                    expirado: expirado,
+                    meses_vigencia: mesesVigencia
                 });
             }
-        } catch (err) {
-            console.error('Error in validation:', err);
+        } finally {
+            setIsLoading(false);
+        }
+    };
+
+    const handleRedeem = async () => {
+        if (!result?.id_registro) return;
+        setIsLoading(true);
+
+        try {
+            const { error } = await supabase
+                .from('canjes')
+                .insert([{ id_registro: result.id_registro }]);
+
+            if (error) throw error;
+
+            // Actualizamos el estado local para reflejar el canje
             setResult({
-                success: false,
-                message: 'Ocurrió un error al consultar el sistema. Por favor, reintente.'
+                ...result,
+                ya_canjeado_este_mes: true,
+                ultima_fecha_canje: new Date().toISOString(),
+                recien_canjeado: true
             });
+        } catch (err) {
+            console.error('Error recording redemption:', err);
+            alert('Error al registrar el canje. Reintente.');
         } finally {
             setIsLoading(false);
         }
@@ -114,10 +198,11 @@ export default function Validation() {
                                     type="text"
                                     {...register('dni', {
                                         required: 'El DNI es obligatorio',
-                                        pattern: { value: /^[0-9\.-]+$/, message: 'Formato de DNI inválido' }
                                     })}
+                                    value={dniValue}
+                                    onChange={handleDniChange}
                                     className="w-full px-6 py-5 bg-white/5 border border-white/10 rounded-2xl text-migusto-crema focus:outline-none focus:ring-2 focus:ring-migusto-rojo/50 focus:border-migusto-rojo transition-all text-xl font-medium placeholder:text-white/10"
-                                    placeholder="Ingrese el DNI"
+                                    placeholder="00-000-000"
                                     autoComplete="off"
                                 />
                                 <Search className="absolute right-6 top-1/2 -translate-y-1/2 h-6 w-6 text-white/20" />
@@ -181,7 +266,61 @@ export default function Validation() {
                                                         <Ticket className="h-6 w-6" />
                                                         <span className="font-bold text-lg">1 pack 12 empanadas</span>
                                                     </div>
-                                                    <p className="text-white/60 font-medium">Disponible para canje este mes</p>
+
+                                                    {result.expirado ? (
+                                                        <div className="bg-red-500/20 text-red-400 px-6 py-2 rounded-xl border border-red-500/30 mt-2 font-bold uppercase tracking-widest text-xs">
+                                                            Ticket Vencido ({result.meses_vigencia} meses cumplidos)
+                                                        </div>
+                                                    ) : result.recien_canjeado ? (
+                                                        <div className="flex flex-col items-center">
+                                                            <div className="bg-migusto-oro/10 text-migusto-dorado-bright px-8 py-4 rounded-2xl border-2 border-migusto-oro/50 mt-2 font-black uppercase tracking-widest text-sm flex items-center space-x-3 shadow-[0_0_20px_rgba(251,191,36,0.2)] animate-pulse">
+                                                                <CheckCircle2 className="h-5 w-5" />
+                                                                <span>¡Beneficio entregado con éxito!</span>
+                                                            </div>
+                                                            <p className="text-[10px] text-white/30 mt-4 font-medium uppercase tracking-widest">
+                                                                Registrado en sistema
+                                                            </p>
+                                                        </div>
+                                                    ) : result.ya_canjeado_este_mes ? (
+                                                        <div className="flex flex-col items-center">
+                                                            <div className="bg-red-500/10 text-red-500 px-8 py-4 rounded-2xl border-2 border-red-500/50 mt-2 font-black uppercase tracking-widest text-sm flex items-center space-x-3 shadow-[0_0_20px_rgba(239,68,68,0.1)]">
+                                                                <XCircle className="h-5 w-5" />
+                                                                <span>Ya usó su beneficio este mes</span>
+                                                            </div>
+                                                            <div className="bg-white/5 px-6 py-4 rounded-2xl mt-4 border border-white/10 w-full">
+                                                                <p className="text-xs text-white/60 font-black uppercase tracking-[0.2em] mb-2 text-center">
+                                                                    FECHA DE RETIRO
+                                                                </p>
+                                                                <p className="text-2xl text-migusto-crema font-sans font-black tracking-tight leading-none text-center">
+                                                                    {new Date(result.ultima_fecha_canje!).toLocaleString('es-AR', {
+                                                                        day: '2-digit',
+                                                                        month: '2-digit',
+                                                                        year: 'numeric',
+                                                                        hour: '2-digit',
+                                                                        minute: '2-digit'
+                                                                    })}
+                                                                </p>
+                                                            </div>
+                                                        </div>
+                                                    ) : (
+                                                        <>
+                                                            <p className="text-white/60 font-medium mb-6">Disponible para canje este mes</p>
+                                                            <motion.button
+                                                                onClick={handleRedeem}
+                                                                disabled={isLoading}
+                                                                whileHover={{ scale: 1.05 }}
+                                                                whileTap={{ scale: 0.95 }}
+                                                                className="bg-emerald-600 hover:bg-emerald-500 text-white px-8 py-4 rounded-2xl font-black uppercase tracking-widest transition-all shadow-lg flex items-center space-x-3"
+                                                            >
+                                                                {isLoading ? <Loader2 className="h-5 w-5 animate-spin" /> : (
+                                                                    <>
+                                                                        <span>Entregar Beneficio</span>
+                                                                        <CheckCircle2 className="h-5 w-5" />
+                                                                    </>
+                                                                )}
+                                                            </motion.button>
+                                                        </>
+                                                    )}
                                                 </div>
 
                                                 <div className="mt-8 pt-6 border-t border-white/5 w-full">
